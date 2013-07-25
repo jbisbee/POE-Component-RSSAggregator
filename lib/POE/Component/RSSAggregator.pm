@@ -1,7 +1,7 @@
 package POE::Component::RSSAggregator;
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.10;
+$VERSION = 0.2;
 
 =head1 NAME
 
@@ -9,6 +9,8 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
 
 =head1 SYNOPSIS
 
+    #!/usr/bin/perl -w
+    use strict;
     use POE;
     use POE::Component::RSSAggregator;
     use XML::RSS::Feed::Factory;
@@ -18,13 +20,11 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
 	    url   => "http://www.jbisbee.com/rdf/",
 	    name  => "jbisbee",
 	    delay => 10,
-	    debug => 1,
 	},
 	{
 	    url   => "http://lwn.net/headlines/rss",
 	    name  => "lwn",
 	    delay => 300,
-	    debug => 1,
 	},
     );
 
@@ -41,15 +41,16 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
     {
 	my ($kernel, $heap, $session) = @_[KERNEL, HEAP, SESSION];
 	$heap->{rssagg} = POE::Component::RSSAggregator->new(
-	    feeds    => [feed_factory(@define_feeds)],
+	    feeds    => \@feeds,
 	    debug    => 1,
 	    callback => $session->postback("handle_feed"),
+	    tmpdir   => '/tmp', # optional caching
 	);
     }
 
     sub handle_feed
     {
-	my ($heap,$kernel,$feed) = (@_[HEAP, KERNEL], $_[ARG1]->[0]);
+	my ($kernel,$feed) = (@_[KERNEL], $_[ARG1]->[0]);
 	for my $headline ($feed->late_breaking_news) {
 	    # do stuff with the XML::RSS::Headline object
 	    print $headline->headline . "\n";
@@ -95,13 +96,11 @@ sub new
     my $class = shift;
     croak __PACKAGE__ . "->new() params must be a hash" if @_ % 2;
     my %params = @_;
-    croak __PACKAGE__ . "->new() feeds ARRAY ref is required" 
-	unless ref $params{feeds} eq "ARRAY";
-    my $test = ref $params{callback};
-#    croak __PACKAGE__ . "->new callback CODE ref is required" 
-#    	unless ref $params{callback} =~ /CODE/;
+    my $feeds = $params{feeds} || [];
+    delete $params{feeds};
+    croak __PACKAGE__ . "->new() feeds ARRAY ref is required" unless ref $feeds eq "ARRAY";
     my $self = bless \%params, $class;
-    $self->init();
+    $self->init($feeds);
     return $self;
 }
 
@@ -111,13 +110,81 @@ sub feeds
     return $self->{feed_objs};
 }
 
+sub feed
+{
+    my ($self,$name) = @_;
+    return exists $self->{feed_objs}{$name} ? $self->{feed_objs}{$name} : undef;
+}
+
+sub add_feed
+{
+    my ($self,$kernel,$feed_hash) = @_[OBJECT,KERNEL,ARG0];
+    if (exists $self->{feed_objs}{$feed_hash->{name}}) {
+	warn "[$feed_hash->{name}] !! Add Failed: Feed name already exists\n";
+	return;
+    }
+    warn "[$feed_hash->{name}] Added\n" if $self->{debug};
+    $self->_create_feed_object($feed_hash);
+    # Test to remove it after 10 seconds
+    $kernel->yield('fetch', $feed_hash->{name});
+}
+
+sub remove_feed
+{
+    my ($self,$kernel,$name) = @_[OBJECT,KERNEL,ARG0];
+    unless (exists $self->{feed_objs}{$name}) {
+	warn "[$name] !! Remove Failed: Unknown feed\n";
+	return;
+    }
+    $kernel->call('rssagg','pause_feed','jbisbee');
+    delete $self->{feed_objs}{$name};
+    warn "[$name] Removed RSS Feed\n" if $self->{debug};
+}
+
+sub pause_feed
+{
+    my ($self,$kernel,$name) = @_[OBJECT,KERNEL,ARG0];
+    unless (exists $self->{feed_objs}{$name}) {
+	warn "[$name] !! Pause Failed: Unknown feed\n";
+	return;
+    }
+    unless (exists $self->{alarm_ids}{$name}) {
+	warn "[$name] !! Pause Failed: Feed currently on pause\n";
+	return;
+    }
+    $kernel->alarm_remove($self->{alarm_ids}{$name});
+    delete $self->{alarm_ids}{$name};
+    warn "[$name] Paused RSS Feed\n" if $self->{debug};
+}
+
+sub resume_feed
+{
+    my ($self,$kernel,$name) = @_[OBJECT,KERNEL,ARG0];
+    unless (exists $self->{feed_objs}{$name}) {
+	warn "[$name] !! Resume Failed: Unknown feed\n";
+	return;
+    }
+    if (exists $self->{alarm_ids}{$name}) {
+	warn "[$name] !! Resume Failed: Feed currently active\n";
+	return;
+    }
+    warn "[$name] Resumed RSS Feed\n" if $self->{debug};
+    $kernel->yield('fetch',$name);
+}
+
 sub init
 {
-    my ($self) = @_;
-    if ($self->{feeds}) {
-	for my $hash (@{$self->{feeds}}) {
-	    my $obj = "XML::RSS::Feed";
-	    $self->{feed_objs}->{$hash->{name}} = $obj->new(%$hash);
+    my ($self,$feeds) = @_;
+    if ($feeds) {
+	for my $feed_hash (@{$feeds}) {
+	    if (ref $feed_hash eq "HASH") {
+		$self->_create_feed_object($feed_hash);
+	    }
+	    else {
+		# XXX fix this!  actually check to see if the hashes are XML::RSS::Feed objects
+		warn "[!!] the use of XML::RSS::Feed::Factory has been depricated\n";
+		$self->{feed_objs}{$feed_hash->{name}} = $feed_hash;
+	    }
 	}
     }
     unless ($self->{http_alias}) {
@@ -131,36 +198,63 @@ sub init
     }
     POE::Session->create(
 	object_states => [
-	    $self => [qw(_start fetch response _stop)],
+	    $self => [qw(_start add_feed remove_feed pause_feed resume_feed fetch response _stop)],
 	],
     );
 }
 
+sub _create_feed_object
+{
+    my ($self,$feed_hash) = @_;
+    warn "[$feed_hash->{name}] Creating XML::RSS::Feed object\n" if $self->{debug};
+    $feed_hash->{tmpdir} = $self->{tmpdir} if -d $self->{tmpdir};
+    $feed_hash->{debug} = $self->{debug} if $self->{debug};
+    if (my $rssfeed = XML::RSS::Feed->new(%$feed_hash)) {
+	$self->{feed_objs}->{$rssfeed->name} = $rssfeed;
+    }
+    else {
+	warn "[$feed_hash->{name}] !! Error attempting to create XML::RSS::Feed object\n";
+    }
+}
+
 sub _start
 {
-    my ($self,$kernel,$heap) = @_[OBJECT,KERNEL,HEAP];
-    for my $rssfeed (values %{$self->{feed_objs}}) {
-	$kernel->yield('fetch', $rssfeed);
-    }
+    my ($self,$kernel) = @_[OBJECT,KERNEL];
+    $kernel->alias_set($self->{alias} || 'rssagg');
 }
 
 sub fetch
 {
-    my ($self,$kernel,$rssfeed) = @_[OBJECT,KERNEL,ARG0];
+    my ($self,$kernel,$feed_name) = @_[OBJECT,KERNEL,ARG0];
+    unless (exists $self->{feed_objs}{$feed_name}) {
+	warn "[$feed_name] Unknown Feed\n";
+	return;
+    }
+
+    my $rssfeed = $self->{feed_objs}{$feed_name};
     $rssfeed->failed_to_fetch(0);
     $rssfeed->failed_to_parse(0);
     my $req = HTTP::Request->new(GET => $rssfeed->url);
-    $kernel->post($self->{http_alias},'request','response',$req,$rssfeed);
-    $self->{alarm_ids}{$rssfeed->name} = $kernel->delay_set('fetch', $rssfeed->delay, $rssfeed);
+    warn "[".$rssfeed->name."] Attempting to fetch\n" if $self->{debug};
+    $kernel->post($self->{http_alias},'request','response',$req,$rssfeed->name);
+    $self->{alarm_ids}{$rssfeed->name} = 
+	$kernel->delay_set('fetch', $rssfeed->delay, $rssfeed->name);
 }
 
 sub response
 {
     my ($self,$kernel,$request_packet,$response_packet) = 
 	@_[OBJECT,KERNEL,ARG0,ARG1];
-    my ($req,$rssfeed) = @$request_packet;
+    my ($req,$feed_name) = @$request_packet;
+    unless (exists $self->{feed_objs}{$feed_name}) {
+	warn "[$feed_name] Unknown Feed\n";
+	return;
+    }
+
+    my $rssfeed = $self->{feed_objs}{$feed_name};
     my $res = $response_packet->[0];
     if ($res->is_success) {
+	warn "[" . $rssfeed->name. "] Fetched " . $rssfeed->url . "\n" if $self->{debug};
 	$rssfeed->parse($res->content);
 	$self->{callback}->($rssfeed) unless $rssfeed->failed_to_parse;
     }
@@ -172,7 +266,7 @@ sub response
 
 # not sure whats needs be cleaned up yet
 sub _stop {
-    my ($self,$kernel,$heap) = @_[OBJECT,KERNEL,HEAP];
+    my ($self,$kernel) = @_[OBJECT,KERNEL];
 }
 
 1;

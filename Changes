@@ -1,5 +1,15 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
+0.20
+	- ATTENTION! You no longer need to use XML::RSS::Feed::Factory
+	  to defined 'feeds', just pass an array ref of hash refs 
+	  for each feed you'd like to watch.
+	- Fixed POD example so it actually works :D
+	- added 'tmpdir' param to pass to XML::RSS::Feed objects to 
+	  cache XML on DESTROY and to attempt to load and parse old
+	  headlines when the object is initialized.
+	- added 'feed' accessor method to fetch XML::RSS::Feed objects
+
 0.10
 	- Now use XML::RSS::Headline instead of XML::RSS::Feed::Headline
 	- added an accessor 'feeds' for to the hash of rss feeds

@@ -6,3 +6,4 @@ Changes
 lib/POE/Component/RSSAggregator.pm
 t/001_load.t
 Makefile.PL
+META.yml                                 Module meta-data (added by MakeMaker)
