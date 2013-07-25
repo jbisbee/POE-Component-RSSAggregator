@@ -1,11 +1,7 @@
-
 package POE::Component::RSSAggregator;
 use strict;
-
-BEGIN {
-    use vars qw ($VERSION);
-    $VERSION = 0.01;
-}
+use vars qw($VERSION);
+$VERSION = 0.02;
 
 =head1 NAME
 
@@ -15,19 +11,30 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
 
     use POE;
     use POE::Component::RSSAggregator;
+    use XML::RSS::Feed::Factory;
 
 First define the RSS Feeds you would like to watch
 
-    my $feed = {
-	url   => "http://www.jbisbee.com/rdf/",
-	name  => "jbisbee",
-	delay => 10, # seconds between requests
-    };
+    my @feeds = (
+	{
+	    url   => "http://www.jbisbee.com/rdf/",
+	    name  => "jbisbee",
+	    delay => 10,
+	    debug => 1,
+	},
+	{
+	    url   => "http://lwn.net/headlines/rss",
+	    name  => "lwn",
+	    delay => 300,
+	    debug => 1,
+	},
+    );
 
-Create a new PoCo::RSSAggregator object
+Create a new PoCo::RSSAggregator object and use the feed_factory function
+XML::RSS:Feed::Factory to generate your XML::RSS::Feed objects.
 
     my $rssagg = POE::Component::RSSAggregator->new(
-	feeds    => [$feed],
+	feeds    => [feed_factory(@feeds)],
 	debug    => 1,
 	callback => \&new_headlines,
     );
@@ -50,22 +57,11 @@ can see if things have changed - $feed->late_breaking_news
     }
 
 
-=head1 DESCRIPTION
-
-
 =head1 USAGE
 
 The short version is that fetch RSS feeds every 'delay' second
 adn when new headlines are found the XML::RSS::Feed::Headline
 objects are recived via the registerd call back function.
-
-=head1 BUGS
-
-
-
-=head1 SUPPORT
-
-
 
 =head1 AUTHOR
 
@@ -85,7 +81,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-perl(1).
+L<XML::RSS::Feed::Factory>, L<XML::RSS::Feed>, L<XML::RSS::Feed::Headline>
 
 =cut
 
