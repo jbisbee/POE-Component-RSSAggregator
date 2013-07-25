@@ -1,5 +1,10 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
+0.26
+	- fixed 'remove_feed' so that it when it yielded 'pause_feed'
+	  that it would actually work.
+	- updated pod to show 'alias' as a new() param
+
 0.25
 	- ATTENTION! new() param 'feeds' has been deprecated, use 
 	  add_feed instead

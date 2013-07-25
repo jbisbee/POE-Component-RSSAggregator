@@ -1,7 +1,7 @@
 package POE::Component::RSSAggregator;
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.25;
+$VERSION = 0.26;
 
 =head1 NAME
 
@@ -40,6 +40,7 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
     {
 	my ($kernel, $heap, $session) = @_[KERNEL, HEAP, SESSION];
 	$heap->{rssagg} = POE::Component::RSSAggregator->new(
+	    alias    => 'rssagg',
 	    debug    => 1,
 	    callback => $session->postback("handle_feed"),
 	    tmpdir   => '/tmp', # optional caching
@@ -133,7 +134,7 @@ sub remove_feed
 	warn "[$name] !! Remove Failed: Unknown feed\n";
 	return;
     }
-    $kernel->call('rssagg','pause_feed','jbisbee');
+    $kernel->yield('pause_feed', $name);
     delete $self->{feed_objs}{$name};
     warn "[$name] Removed RSS Feed\n" if $self->{debug};
 }
