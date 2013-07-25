@@ -1,7 +1,7 @@
 package POE::Component::RSSAggregator;
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.26;
+$VERSION = 0.27;
 
 =head1 NAME
 
@@ -81,7 +81,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-L<XML::RSS::Feed::Factory>, L<XML::RSS::Feed>, L<XML::RSS::Headline>
+L<XML::RSS::Feed>, L<XML::RSS::Headline>
 
 =cut
 
@@ -196,7 +196,7 @@ sub _create_feed_object
     $feed_hash->{tmpdir} = $self->{tmpdir} if -d $self->{tmpdir};
     $feed_hash->{debug} = $self->{debug} if $self->{debug};
     if (my $rssfeed = XML::RSS::Feed->new(%$feed_hash)) {
-	$self->{feed_objs}->{$rssfeed->name} = $rssfeed;
+	$self->{feed_objs}{$rssfeed->name} = $rssfeed;
     }
     else {
 	warn "[$feed_hash->{name}] !! Error attempting to create XML::RSS::Feed object\n";
@@ -218,8 +218,6 @@ sub fetch
     }
 
     my $rssfeed = $self->{feed_objs}{$feed_name};
-    $rssfeed->failed_to_fetch(0);
-    $rssfeed->failed_to_parse(0);
     my $req = HTTP::Request->new(GET => $rssfeed->url);
     warn "[".$rssfeed->name."] Attempting to fetch\n" if $self->{debug};
     $kernel->post($self->{http_alias},'request','response',$req,$rssfeed->name);
@@ -241,11 +239,9 @@ sub response
     my $res = $response_packet->[0];
     if ($res->is_success) {
 	warn "[" . $rssfeed->name. "] Fetched " . $rssfeed->url . "\n" if $self->{debug};
-	$rssfeed->parse($res->content);
-	$self->{callback}->($rssfeed) unless $rssfeed->failed_to_parse;
+	$self->{callback}->($rssfeed) if $rssfeed->parse($res->content);
     }
     else {
-	$rssfeed->failed_to_fetch(1);
 	warn "[!!] Failed to fetch " . $req->uri . "\n";
     }
 }

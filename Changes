@@ -1,5 +1,9 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
+0.27
+	- Updated pod (removed reference to XML::RSS::Feed::Factory)
+	- removed calls to failed_to_fetch and failed_to_parse
+
 0.26
 	- fixed 'remove_feed' so that it when it yielded 'pause_feed'
 	  that it would actually work.
