@@ -1,9 +1,11 @@
 --- #YAML:1.0
 name:                POE-Component-RSSAggregator
-version:             1.022
+version:             1.1
 abstract:            Watch Muliple RSS Feeds for New Headlines
 license:             perl
-generated_by:        ExtUtils::MakeMaker version 6.31
+author:              
+    - Jeff Bisbee <jbisbee@cpan.org>
+generated_by:        ExtUtils::MakeMaker version 6.44
 distribution_type:   module
 requires:     
     Carp:                          0
@@ -13,7 +15,5 @@ requires:
     Test::More:                    0
     XML::RSS::Feed:                0.01
 meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
-    version: 1.2
-author:
-    - Jeff Bisbee <jbisbee@cpan.org>
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3

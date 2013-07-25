@@ -3,7 +3,7 @@ NAME
     Headlines
 
 VERSION
-    Version 1.022
+    Version 1.1
 
 SYNOPSIS
         #!/usr/bin/perl
@@ -56,21 +56,26 @@ CONSTRUCTORS
   POE::Component::RSSAggregator->new( %hash );
     Create a new instace of PoCo::RSSAggregator.
 
-    * alias
+    *   alias
+
         POE alias to use for your instance of PoCo::RSSAggregator.
 
-    * debug
+    *   debug
+
         Boolean value to turn on verbose output. (debug is also passed to
         XML::RSS::Feed instances to turn on verbose output as well)
 
-    * tmpdir
+    *   tmpdir
+
         The tmpdir argument is passed on to XML::RSS::Feed as the directory
         to cache RSS between fetches (and instances).
 
-    * http_alias
+    *   http_alias
+
         Optional. Alias of an existing PoCoCl::HTTP.
 
-    * follow_redirects
+    *   follow_redirects
+
         Optional. Only if you don't have an exiting PoCoCl::HTTP. Argument
         is passed to PoCoCl::HTTP to tell it the follow redirect level.
         (Defaults to 2)
@@ -120,17 +125,21 @@ SUPPORT
 
     You can also look for information at:
 
-    * AnnoCPAN: Annotated CPAN documentation
+    *   AnnoCPAN: Annotated CPAN documentation
+
         <http://annocpan.org/dist/POE-Component-RSSAggregator>
 
-    * CPAN Ratings
+    *   CPAN Ratings
+
         <http://cpanratings.perl.org/d/POE-Component-RSSAggregator>
 
-    * RT: CPAN's request tracker
+    *   RT: CPAN's request tracker
+
         <http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-RSSAggregato
         r>
 
-    * Search CPAN
+    *   Search CPAN
+
         <http://search.cpan.org/dist/POE-Component-RSSAggregator>
 
 ACKNOWLEDGEMENTS

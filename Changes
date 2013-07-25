@@ -1,5 +1,18 @@
 Revision history for POE-Component-RSSAggregator
 
+1.1     6/30/2008
+        - perlcritic updates
+            - move pod below __END__
+            - added two constants
+                - use constant DEFAULT_TIMEOUT => 60;
+                - use constant REDIRECT_DEPTH  => 2;
+            - remove trailing whitespace from lines
+            - added implicit returns from subs that didn't have them
+            - fix uninterpolated string warnings ("" to '')
+            - added use strict/use warnings to tests
+            - change quoted regexp to use {} instead of ()
+        - Update README
+
 1.022   11/06/2006
         - No need to update, cpants META.yml fix, needed to update to
           ExtUtils::MakeMaker 6.31 for META.yml update (part deux)

@@ -3,11 +3,10 @@ use strict;
 use warnings;
 use Test::More tests => 1;
 
-use_ok("POE");
+use_ok('POE');
 POE::Kernel->run();
 
 __DATA__
-
 use Test::More tests => 5;
 use POE;
 use POE::Component::RSSAggregator;
