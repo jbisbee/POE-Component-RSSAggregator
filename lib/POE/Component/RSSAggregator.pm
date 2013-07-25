@@ -7,7 +7,7 @@ use HTTP::Request;
 use XML::RSS::Feed;
 use Carp qw(croak);
 
-our $VERSION = 0.29;
+our $VERSION = 0.3;
 
 =head1 NAME
 

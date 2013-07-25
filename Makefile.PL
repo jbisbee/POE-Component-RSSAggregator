@@ -6,6 +6,7 @@ WriteMakefile(
     ABSTRACT     => 'A Simple Clean POE RSS Aggregator',
     PREREQ_PM    => { 
 	'POE::Component::Client::HTTP' => 0.51,
+	'POE::Component::Client::DNS'  => 0.98,
 	'XML::RSS::Feed'               => 0.01,
 	'HTTP::Request'                => 1.30,
     },

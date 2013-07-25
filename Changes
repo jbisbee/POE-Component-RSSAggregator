@@ -1,5 +1,8 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
+0.3
+	- Added POE::Component::Client::DNS as a dependency
+
 0.29
 	- New shutdown event to clean things up
 	- New feed_list method to get the current feeds
