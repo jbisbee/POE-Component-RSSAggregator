@@ -1,6 +1,10 @@
 Revision history for POE-Component-RSSAggregator
 
-1.01    11/01/2006
+1.021   11/05/2006
+        - No need to update, cpants META.yml fix, needed to update to
+          ExtUtils::MakeMaker 6.31 for META.yml update
+
+1.02    11/01/2006
         - Fixed cpants META.yaml issue
 
 1.01    - Missed renaming a fetch to _fetch when the delay was set
