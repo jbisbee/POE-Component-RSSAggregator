@@ -1,7 +1,7 @@
 package POE::Component::RSSAggregator;
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.2;
+$VERSION = 0.25;
 
 =head1 NAME
 
@@ -13,7 +13,6 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
     use strict;
     use POE;
     use POE::Component::RSSAggregator;
-    use XML::RSS::Feed::Factory;
 
     my @feeds = (
 	{
@@ -41,16 +40,16 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
     {
 	my ($kernel, $heap, $session) = @_[KERNEL, HEAP, SESSION];
 	$heap->{rssagg} = POE::Component::RSSAggregator->new(
-	    feeds    => \@feeds,
 	    debug    => 1,
 	    callback => $session->postback("handle_feed"),
 	    tmpdir   => '/tmp', # optional caching
 	);
+	$kernel->post('rssagg','add_feed',$_) for @feeds;
     }
 
     sub handle_feed
     {
-	my ($kernel,$feed) = (@_[KERNEL], $_[ARG1]->[0]);
+	my ($kernel,$feed) = ($_[KERNEL], $_[ARG1]->[0]);
 	for my $headline ($feed->late_breaking_news) {
 	    # do stuff with the XML::RSS::Headline object
 	    print $headline->headline . "\n";
@@ -96,11 +95,9 @@ sub new
     my $class = shift;
     croak __PACKAGE__ . "->new() params must be a hash" if @_ % 2;
     my %params = @_;
-    my $feeds = $params{feeds} || [];
-    delete $params{feeds};
-    croak __PACKAGE__ . "->new() feeds ARRAY ref is required" unless ref $feeds eq "ARRAY";
+    croak __PACKAGE__ . "->new() feeds param has been deprecated, use add_feed" if $params{feeds};
     my $self = bless \%params, $class;
-    $self->init($feeds);
+    $self->init();
     return $self;
 }
 
@@ -174,19 +171,7 @@ sub resume_feed
 
 sub init
 {
-    my ($self,$feeds) = @_;
-    if ($feeds) {
-	for my $feed_hash (@{$feeds}) {
-	    if (ref $feed_hash eq "HASH") {
-		$self->_create_feed_object($feed_hash);
-	    }
-	    else {
-		# XXX fix this!  actually check to see if the hashes are XML::RSS::Feed objects
-		warn "[!!] the use of XML::RSS::Feed::Factory has been depricated\n";
-		$self->{feed_objs}{$feed_hash->{name}} = $feed_hash;
-	    }
-	}
-    }
+    my ($self) = @_;
     unless ($self->{http_alias}) {
 	$self->{http_alias} = 'ua';
 	POE::Component::Client::HTTP->spawn(

@@ -1,5 +1,19 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
+0.25
+	- ATTENTION! new() param 'feeds' has been deprecated, use 
+	  add_feed instead
+
+	      $heap->{rssagg} = POE::Component::RSSAggregator->new(
+		  debug    => 1,
+		  callback => $session->postback("handle_feed"),
+		  tmpdir   => '/tmp', # optional caching
+	      );
+
+	    $kernel->post('rssagg','add_feed',$_) for @feeds;
+	
+	- fixed the pod not to use XML::RSS::Feed::Factory in the example
+
 0.20
 	- ATTENTION! You no longer need to use XML::RSS::Feed::Factory
 	  to defined 'feeds', just pass an array ref of hash refs 
@@ -15,7 +29,7 @@ Revision history for Perl module POE::Component::RSSAggregator
 	- added an accessor 'feeds' for to the hash of rss feeds
 	- use delay_set instead of delay_add.  This is for the future
 	  support of adding, reloading, removing feeds.
-	- use poe postback instead of sub reference for callback
+	- use POE postback instead of sub reference for callback
 	- updated the pod with a POE session example
 
 0.01
