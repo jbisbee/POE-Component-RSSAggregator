@@ -1,7 +1,7 @@
 package POE::Component::RSSAggregator;
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.27;
+$VERSION = 0.28;
 
 =head1 NAME
 
@@ -193,7 +193,7 @@ sub _create_feed_object
 {
     my ($self,$feed_hash) = @_;
     warn "[$feed_hash->{name}] Creating XML::RSS::Feed object\n" if $self->{debug};
-    $feed_hash->{tmpdir} = $self->{tmpdir} if -d $self->{tmpdir};
+    $feed_hash->{tmpdir} = $self->{tmpdir} if exists $self->{tmpdir} && -d $self->{tmpdir};
     $feed_hash->{debug} = $self->{debug} if $self->{debug};
     if (my $rssfeed = XML::RSS::Feed->new(%$feed_hash)) {
 	$self->{feed_objs}{$rssfeed->name} = $rssfeed;

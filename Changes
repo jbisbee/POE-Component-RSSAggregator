@@ -1,5 +1,9 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
+0.28
+	- Squelched uninitialized -d test on tmpdir when its not
+	  defined.
+
 0.27
 	- Updated pod (removed reference to XML::RSS::Feed::Factory)
 	- removed calls to failed_to_fetch and failed_to_parse
