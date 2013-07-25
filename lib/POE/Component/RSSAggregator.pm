@@ -15,11 +15,11 @@ POE::Component::RSSAggregator - Watch Muliple RSS Feeds for New Headlines
 
 =head1 VERSION
 
-Version 1.021
+Version 1.022
 
 =cut
 
-our $VERSION = 1.021;
+our $VERSION = 1.022;
 
 =head1 SYNOPSIS
 
