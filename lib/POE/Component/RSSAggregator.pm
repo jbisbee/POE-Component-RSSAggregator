@@ -15,11 +15,11 @@ POE::Component::RSSAggregator - Watch Muliple RSS Feeds for New Headlines
 
 =head1 VERSION
 
-Version 1.0
+Version 1.01
 
 =cut
 
-our $VERSION = 1.0;
+our $VERSION = 1.01;
 
 =head1 SYNOPSIS
 
@@ -327,7 +327,7 @@ sub _fetch {
     $kernel->post( $self->{http_alias}, 'request', '_response', $req,
         $rssfeed->name );
     $self->{alarm_ids}{ $rssfeed->name }
-        = $kernel->delay_set( 'fetch', $rssfeed->delay, $rssfeed->name );
+        = $kernel->delay_set( '_fetch', $rssfeed->delay, $rssfeed->name );
 }
 
 sub _response {

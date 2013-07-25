@@ -1,14 +1,15 @@
 Revision history for POE-Component-RSSAggregator
 
-1.0
-	- Wrote decent pod for the module (finally)
+1.01    - Missed renaming a fetch to _fetch when the delay was set
+          Thanks to Kester Edmonds for reporting it.
+
+1.0     - Wrote decent pod for the module (finally)
         - Updated pod template to perl best practices template
         - renamed methods that should have only be internal
             - renamed fetch to internal _fetch
             - renamed response to internal _response
 
-0.3
-	- Added POE::Component::Client::DNS as a dependency
+0.3     - Added POE::Component::Client::DNS as a dependency
 
 0.29
 	- New shutdown event to clean things up
@@ -27,21 +28,17 @@ Revision history for POE-Component-RSSAggregator
 
 	- Need to write MUCH, MUCH, better documentation... its next!
 
-0.28
-	- Squelched uninitialized -d test on tmpdir when its not
+0.28    - Squelched uninitialized -d test on tmpdir when its not
 	  defined.
 
-0.27
-	- Updated pod (removed reference to XML::RSS::Feed::Factory)
+0.27    - Updated pod (removed reference to XML::RSS::Feed::Factory)
 	- removed calls to failed_to_fetch and failed_to_parse
 
-0.26
-	- fixed 'remove_feed' so that it when it yielded 'pause_feed'
+0.26    - fixed 'remove_feed' so that it when it yielded 'pause_feed'
 	  that it would actually work.
 	- updated pod to show 'alias' as a new() param
 
-0.25
-	- ATTENTION! new() param 'feeds' has been deprecated, use 
+0.25    - ATTENTION! new() param 'feeds' has been deprecated, use 
 	  add_feed instead
 
 	      $heap->{rssagg} = POE::Component::RSSAggregator->new(
@@ -54,8 +51,7 @@ Revision history for POE-Component-RSSAggregator
 	
 	- fixed the pod not to use XML::RSS::Feed::Factory in the example
 
-0.20
-	- ATTENTION! You no longer need to use XML::RSS::Feed::Factory
+0.20    - ATTENTION! You no longer need to use XML::RSS::Feed::Factory
 	  to defined 'feeds', just pass an array ref of hash refs 
 	  for each feed you'd like to watch.
 	- Fixed POD example so it actually works :D
@@ -64,13 +60,11 @@ Revision history for POE-Component-RSSAggregator
 	  headlines when the object is initialized.
 	- added 'feed' accessor method to fetch XML::RSS::Feed objects
 
-0.10
-	- Now use XML::RSS::Headline instead of XML::RSS::Feed::Headline
+0.10    - Now use XML::RSS::Headline instead of XML::RSS::Feed::Headline
 	- added an accessor 'feeds' for to the hash of rss feeds
 	- use delay_set instead of delay_add.  This is for the future
 	  support of adding, reloading, removing feeds.
 	- use POE postback instead of sub reference for callback
 	- updated the pod with a POE session example
 
-0.01    
-        - First version, released on an unsuspecting world.
+0.01    - First version, released on an unsuspecting world.
