@@ -1,4 +1,11 @@
-Revision history for Perl module POE::Component::RSSAggregator
+Revision history for POE-Component-RSSAggregator
+
+1.0
+	- Wrote decent pod for the module (finally)
+        - Updated pod template to perl best practices template
+        - renamed methods that should have only be internal
+            - renamed fetch to internal _fetch
+            - renamed response to internal _response
 
 0.3
 	- Added POE::Component::Client::DNS as a dependency
@@ -65,5 +72,5 @@ Revision history for Perl module POE::Component::RSSAggregator
 	- use POE postback instead of sub reference for callback
 	- updated the pod with a POE session example
 
-0.01
-	- original version
+0.01    
+        - First version, released on an unsuspecting world.

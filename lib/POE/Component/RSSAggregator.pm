@@ -1,17 +1,25 @@
 package POE::Component::RSSAggregator;
-use strict;
+
 use warnings;
+use strict;
+
 use POE;
 use POE::Component::Client::HTTP;
 use HTTP::Request;
 use XML::RSS::Feed;
 use Carp qw(croak);
 
-our $VERSION = 0.3;
-
 =head1 NAME
 
 POE::Component::RSSAggregator - Watch Muliple RSS Feeds for New Headlines
+
+=head1 VERSION
+
+Version 1.0
+
+=cut
+
+our $VERSION = 1.0;
 
 =head1 SYNOPSIS
 
@@ -22,81 +30,125 @@ POE::Component::RSSAggregator - Watch Muliple RSS Feeds for New Headlines
     use POE::Component::RSSAggregator;
 
     my @feeds = (
-	{ url   => "http://www.jbisbee.com/rdf/",
-	  name  => "jbisbee",
-	  delay => 10, },
-	{ url   => "http://lwn.net/headlines/rss",
-	  name  => "lwn",
-	  delay => 300 });
+        {   url   => "http://www.jbisbee.com/rdf/",
+            name  => "jbisbee",
+            delay => 10,
+        },
+        {   url   => "http://lwn.net/headlines/rss",
+            name  => "lwn",
+            delay => 300,
+        },
+    );
 
     POE::Session->create(
-	inline_states => {
-	    _start      => \&init_session,
-	    handle_feed => \&handle_feed,
-	});
+        inline_states => {
+            _start      => \&init_session,
+            handle_feed => \&handle_feed,
+        },
+    );
 
     $poe_kernel->run();
 
     sub init_session {
-	my ($kernel, $heap, $session) = @_[KERNEL, HEAP, SESSION];
-	$heap->{rssagg} = POE::Component::RSSAggregator->new(
-	    alias    => 'rssagg',
-	    debug    => 1,
-	    callback => $session->postback("handle_feed"),
-	    tmpdir   => '/tmp', # optional caching
-	);
-	$kernel->post('rssagg','add_feed',$_) for @feeds;
+        my ( $kernel, $heap, $session ) = @_[ KERNEL, HEAP, SESSION ];
+        $heap->{rssagg} = POE::Component::RSSAggregator->new(
+            alias    => 'rssagg',
+            debug    => 1,
+            callback => $session->postback("handle_feed"),
+            tmpdir   => '/tmp',        # optional caching 
+        );
+        $kernel->post( 'rssagg', 'add_feed', $_ ) for @feeds;
     }
 
     sub handle_feed {
-	my ($kernel,$feed) = ($_[KERNEL], $_[ARG1]->[0]);
-	for my $headline ($feed->late_breaking_news) {
-	    # do stuff with the XML::RSS::Headline object
-	    print $headline->headline . "\n";
-	}
+        my ( $kernel, $feed ) = ( $_[KERNEL], $_[ARG1]->[0] );
+        for my $headline ( $feed->late_breaking_news ) {
+
+            # do stuff with the XML::RSS::Headline object
+            print $headline->headline . "\n";
+        }
     }
 
-=head1 USAGE
+=head1 CONSTRUCTORS
 
-=cut 
+=head2 POE::Component::RSSAggregator->new( %hash );
 
-sub _start {
-    my ($self,$kernel) = @_[OBJECT,KERNEL];
-    $self->{alias} = 'rssagg' unless $self->{alias};
-    $kernel->alias_set($self->{alias} || 'rssagg');
-}
+Create a new instace of PoCo::RSSAggregator.
 
-sub _stop {}
+=over 4
+
+=item * alias
+
+POE alias to use for your instance of PoCo::RSSAggregator.
+
+=item * debug
+
+Boolean value to turn on verbose output.  (debug is also passed to
+XML::RSS::Feed instances to turn on verbose output as well)
+
+=item * tmpdir
+
+The tmpdir argument is passed on to XML::RSS::Feed as the directory to 
+cache RSS between fetches (and instances).
+
+=item * http_alias
+
+Optional.  Alias of an existing PoCoCl::HTTP.
+
+=item * follow_redirects
+
+Optional.  Only if you don't have an exiting PoCoCl::HTTP.  Argument 
+is passed to PoCoCl::HTTP to tell it the follow redirect level.  
+(Defaults to 2)
+
+=back
+
+=cut
 
 sub new {
     my $class = shift;
     croak __PACKAGE__ . "->new() params must be a hash" if @_ % 2;
     my %params = @_;
-    croak __PACKAGE__ . "->new() feeds param has been deprecated, use add_feed" if $params{feeds};
+
+    croak __PACKAGE__
+        . "->new() feeds param has been deprecated, use add_feed"
+        if $params{feeds};
+
     my $self = bless \%params, $class;
     $self->_init();
+
     return $self;
 }
 
+sub _start {
+    my ( $self, $kernel ) = @_[ OBJECT, KERNEL ];
+    $self->{alias} = 'rssagg' unless $self->{alias};
+    $kernel->alias_set( $self->{alias} );
+}
+
+sub _stop {}
+
 sub _init {
     my ($self) = @_;
+
     unless ($self->{http_alias}) {
 	$self->{http_alias} = 'ua';
 	$self->{follow_redirects} ||= 2;
-	POE::Component::Client::HTTP->spawn(
-	    Alias           => $self->{http_alias},
-	    Timeout         => 60,
-	    FollowRedirects => $self->{follow_redirects},
-	    Agent           => 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.1) ' . 
-		               'Gecko/20020913 Debian/1.1-1',
-	);
+        POE::Component::Client::HTTP->spawn(
+            Alias           => $self->{http_alias},
+            Timeout         => 60,
+            FollowRedirects => $self->{follow_redirects},
+            Agent           => 'Mozilla/5.0 (X11; U; Linux i686; en-US; '
+                . 'rv:1.1) Gecko/20020913 Debian/1.1-1',
+        );
     }
+
     POE::Session->create(
 	object_states => [
 	    $self => [qw(
 		_start
 		add_feed remove_feed pause_feed resume_feed 
-		fetch response
+		_fetch _response
 		shutdown
 		_stop
 	    )],
@@ -105,148 +157,255 @@ sub _init {
 }
 
 sub _create_feed_object {
-    my ($self,$feed_hash) = @_;
-    warn "[$feed_hash->{name}] Creating XML::RSS::Feed object\n" if $self->{debug};
-    $feed_hash->{tmpdir} = $self->{tmpdir} if exists $self->{tmpdir} && -d $self->{tmpdir};
-    $feed_hash->{debug} = $self->{debug} if $self->{debug};
-    if (my $rssfeed = XML::RSS::Feed->new(%$feed_hash)) {
-	$self->{feed_objs}{$rssfeed->name} = $rssfeed;
+    my ( $self, $feed_hash ) = @_;
+
+    warn "[$feed_hash->{name}] Creating XML::RSS::Feed object\n"
+        if $self->{debug};
+
+    $feed_hash->{tmpdir} = $self->{tmpdir}
+        if exists $self->{tmpdir} && -d $self->{tmpdir};
+
+    $feed_hash->{debug} = $self->{debug} 
+        if $self->{debug};
+
+    if ( my $rssfeed = XML::RSS::Feed->new(%$feed_hash) ) {
+        $self->{feed_objs}{ $rssfeed->name } = $rssfeed;
     }
     else {
-	warn "[$feed_hash->{name}] !! Error attempting to create XML::RSS::Feed object\n";
+        warn "[$feed_hash->{name}] !! Error attempting to " 
+            . "create XML::RSS::Feed object\n";
     }
 }
 
+=head1 METHODS
+
+=head2 $rssagg->feed_list
+
+Returns the current feeds as an array or array_ref.
+
+=cut
+
 sub feed_list {
     my ($self) = @_;
-    my @feeds = map { $self->{feed_objs}{$_} } keys %{$self->{feed_objs}};
+    my @feeds = map { $self->{feed_objs}{$_} } keys %{ $self->{feed_objs} };
     return wantarray ? @feeds : \@feeds;
 }
+
+=head2 $rssagg->feeds
+
+Returns a hash ref of feeds with the key being the feeds name.
+
+=cut
 
 sub feeds {
     my ($self) = @_;
     return $self->{feed_objs};
 }
 
+=head2 $rssagg->feed( $feed_name )
+
+Accessor to access a the XML::RSS::Feed object via a feed's name.
+
+=cut
+
 sub feed {
-    my ($self,$name) = @_;
-    return exists $self->{feed_objs}{$name} ? $self->{feed_objs}{$name} : undef;
+    my ( $self, $name ) = @_;
+    return exists $self->{feed_objs}{$name}
+        ? $self->{feed_objs}{$name}
+        : undef;
 }
 
+=head2 $rssagg->add_feed( $hash_ref )
+
+The hash reference you pass in to add_feed is passed to
+XML::RSS::Feed->new($hash_ref). ( see L<XML::RSS::Feed> )
+
+=cut
+
 sub add_feed {
-    my ($self,$kernel,$feed_hash) = @_[OBJECT,KERNEL,ARG0];
-    if (exists $self->{feed_objs}{$feed_hash->{name}}) {
-	warn "[$feed_hash->{name}] !! Add Failed: Feed name already exists\n";
-	return;
+    my ( $self, $kernel, $feed_hash ) = @_[ OBJECT, KERNEL, ARG0 ];
+    if ( exists $self->{feed_objs}{ $feed_hash->{name} } ) {
+        warn "[$feed_hash->{name}] !! Add Failed: Feed name already exists\n";
+        return;
     }
     warn "[$feed_hash->{name}] Added\n" if $self->{debug};
     $self->_create_feed_object($feed_hash);
+
     # Test to remove it after 10 seconds
-    $kernel->yield('fetch', $feed_hash->{name});
+    $kernel->yield( '_fetch', $feed_hash->{name} );
 }
 
+=head2 $rssagg->remove_feed( $feed_name )
+
+Pass in the name of the feed you want to remove.
+
+=cut
+
 sub remove_feed {
-    my ($self,$kernel,$name) = @_[OBJECT,KERNEL,ARG0];
-    unless (exists $self->{feed_objs}{$name}) {
-	warn "[$name] remove_feed: Remove Failed: Unknown feed\n";
-	return;
+    my ( $self, $kernel, $name ) = @_[ OBJECT, KERNEL, ARG0 ];
+    unless ( exists $self->{feed_objs}{$name} ) {
+        warn "[$name] remove_feed: Remove Failed: Unknown feed\n";
+        return;
     }
-    $kernel->call($self->{alias},'pause_feed', $name);
+    $kernel->call( $self->{alias}, 'pause_feed', $name );
     delete $self->{feed_objs}{$name};
     warn "[$name] remove_feed: Removed RSS Feed\n" if $self->{debug};
 }
 
+=head2 $rssagg->pause_feed( $feed_name )
+
+Pass in the name of the feed you want to pause.
+
+=cut
+
 sub pause_feed {
-    my ($self,$kernel,$name) = @_[OBJECT,KERNEL,ARG0];
-    unless (exists $self->{feed_objs}{$name}) {
-	warn "[$name] pause_feed: Pause Failed: Unknown feed\n";
-	return;
+    my ( $self, $kernel, $name ) = @_[ OBJECT, KERNEL, ARG0 ];
+    unless ( exists $self->{feed_objs}{$name} ) {
+        warn "[$name] pause_feed: Pause Failed: Unknown feed\n";
+        return;
     }
-    unless (exists $self->{alarm_ids}{$name}) {
-	warn "[$name] pause_feed: Pause Failed: Feed currently on pause\n";
-	return;
+    unless ( exists $self->{alarm_ids}{$name} ) {
+        warn "[$name] pause_feed: Pause Failed: Feed currently on pause\n";
+        return;
     }
-    if ($kernel->alarm_remove($self->{alarm_ids}{$name})) {
-	delete $self->{alarm_ids}{$name};
-	warn "[$name] pause_feed: Paused RSS Feed\n" if $self->{debug};
+    if ( $kernel->alarm_remove( $self->{alarm_ids}{$name} ) ) {
+        delete $self->{alarm_ids}{$name};
+        warn "[$name] pause_feed: Paused RSS Feed\n" if $self->{debug};
     }
     else {
-	warn "[$name] pause_feed: Failed to Pause RSS Feed\n" if $self->{debug};
+        warn "[$name] pause_feed: Failed to Pause RSS Feed\n"
+            if $self->{debug};
     }
 }
+
+=head2 $rssagg->resume_feed( $feed_name )
+
+Pass in the name of the feed you want to resume (that you previously paused).
+
+=cut
 
 sub resume_feed {
-    my ($self,$kernel,$name) = @_[OBJECT,KERNEL,ARG0];
-    unless (exists $self->{feed_objs}{$name}) {
-	warn "[$name] resume_feed: Resume Failed: Unknown feed\n";
-	return;
+    my ( $self, $kernel, $name ) = @_[ OBJECT, KERNEL, ARG0 ];
+    unless ( exists $self->{feed_objs}{$name} ) {
+        warn "[$name] resume_feed: Resume Failed: Unknown feed\n";
+        return;
     }
-    if (exists $self->{alarm_ids}{$name}) {
-	warn "[$name] resume_feed: Resume Failed: Feed currently active\n";
-	return;
+    if ( exists $self->{alarm_ids}{$name} ) {
+        warn "[$name] resume_feed: Resume Failed: Feed currently active\n";
+        return;
     }
     warn "[$name] resume_feed: Resumed RSS Feed\n" if $self->{debug};
-    $kernel->yield('fetch',$name);
+    $kernel->yield( '_fetch', $name );
 }
 
+=head2 $rssagg->shutdown
+
+Shutdown the instance of PoCo::RSSAggregator.
+
+=cut
+
 sub shutdown {
-    my ($self,$kernel,$session) = @_[OBJECT,KERNEL,SESSION];
-    for my $feed ($self->feed_list) {
-	$kernel->call($session,'remove_feed',$feed->name);
+    my ( $self, $kernel, $session ) = @_[ OBJECT, KERNEL, SESSION ];
+    for my $feed ( $self->feed_list ) {
+        $kernel->call( $session, 'remove_feed', $feed->name );
     }
     delete $self->{callback};
-    $kernel->alias_remove($self->{alias});
+    $kernel->alias_remove( $self->{alias} );
     warn "shutdown: shutting down rssaggregator\n" if $self->{debug};
 }
 
-sub fetch {
-    my ($self,$kernel,$feed_name) = @_[OBJECT,KERNEL,ARG0];
-    unless (exists $self->{feed_objs}{$feed_name}) {
-	warn "[$feed_name] Unknown Feed\n";
-	return;
+sub _fetch {
+    my ( $self, $kernel, $feed_name ) = @_[ OBJECT, KERNEL, ARG0 ];
+    unless ( exists $self->{feed_objs}{$feed_name} ) {
+        warn "[$feed_name] Unknown Feed\n";
+        return;
     }
 
     my $rssfeed = $self->{feed_objs}{$feed_name};
-    my $req = HTTP::Request->new(GET => $rssfeed->url);
-    warn "[".$rssfeed->name."] Attempting to fetch\n" if $self->{debug};
-    $kernel->post($self->{http_alias},'request','response',$req,$rssfeed->name);
-    $self->{alarm_ids}{$rssfeed->name} = 
-	$kernel->delay_set('fetch', $rssfeed->delay, $rssfeed->name);
+    my $req = HTTP::Request->new( GET => $rssfeed->url );
+    warn "[" . $rssfeed->name . "] Attempting to fetch\n" if $self->{debug};
+    $kernel->post( $self->{http_alias}, 'request', '_response', $req,
+        $rssfeed->name );
+    $self->{alarm_ids}{ $rssfeed->name }
+        = $kernel->delay_set( 'fetch', $rssfeed->delay, $rssfeed->name );
 }
 
-sub response {
-    my ($self,$kernel,$request_packet,$response_packet) = 
-	@_[OBJECT,KERNEL,ARG0,ARG1];
-    my ($req,$feed_name) = @$request_packet;
-    unless (exists $self->{feed_objs}{$feed_name}) {
-	warn "[$feed_name] Unknown Feed\n";
-	return;
+sub _response {
+    my ( $self, $kernel, $request_packet, $response_packet )
+        = @_[ OBJECT, KERNEL, ARG0, ARG1 ];
+
+    my ( $req, $feed_name ) = @$request_packet;
+
+    unless ( exists $self->{feed_objs}{$feed_name} ) {
+        warn "[$feed_name] Unknown Feed\n";
+        return;
     }
 
     my $rssfeed = $self->{feed_objs}{$feed_name};
-    my $res = $response_packet->[0];
-    if ($res->is_success) {
-	warn "[" . $rssfeed->name. "] Fetched " . $rssfeed->url . "\n" if $self->{debug};
-	$self->{callback}->($rssfeed) if $rssfeed->parse($res->content);
+    my $res     = $response_packet->[0];
+    if ( $res->is_success ) {
+        warn "[" . $rssfeed->name . "] Fetched " . $rssfeed->url . "\n"
+            if $self->{debug};
+        $self->{callback}->($rssfeed) if $rssfeed->parse( $res->content );
     }
     else {
-	warn "[!!] Failed to fetch " . $req->uri . "\n";
+        warn "[!!] Failed to fetch " . $req->uri . "\n";
     }
 }
 
 =head1 AUTHOR
 
-Copyright 2004 Jeff Bisbee <jbisbee@cpan.org>
+Jeff Bisbee, C<< <jbisbee at cpan.org> >>
 
-http://search.cpan.org/~jbisbee/
+=head1 BUGS
 
-=head1 COPYRIGHT
+Please report any bugs or feature requests to
+C<bug-poe-component-rssaggregator at rt.cpan.org>, or through the web 
+interface at 
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-RSSAggregator>.
+I will be notified, and then you'll automatically be notified of progress on
+your bug as I make changes.
 
-This program is free software; you can redistribute it and/or modify it under 
-the same terms as Perl itself.
+=head1 SUPPORT
 
-The full text of the license can be found in the LICENSE file included with 
-this module.
+You can find documentation for this module with the perldoc command.
+
+    perldoc POE::Component::RSSAggregator
+
+You can also look for information at:
+
+=over 4
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/POE-Component-RSSAggregator>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/d/POE-Component-RSSAggregator>
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-RSSAggregator>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/POE-Component-RSSAggregator>
+
+=back
+
+=head1 ACKNOWLEDGEMENTS
+
+Special thanks to Rocco Caputo, Martijn van Beers, Sean Burke, Prakash Kailasa
+and Randal Schwartz for their help, guidance, patience, and bug reports. Guys 
+thanks for actually taking time to use the code and give good, honest feedback.
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2006 Jeff Bisbee, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
