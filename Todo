@@ -1,5 +1,7 @@
 TODO list for Perl module POE::Component::RSSAggregator
 
-- Nothing yet
+- check XML::RSS::Feed->last_updated and compare against current time.  If 
+  the difference is less than XML::RSS::Feed->delay then don't initially fetch
+  the feed set a delay to fetch on the difference.
 
 

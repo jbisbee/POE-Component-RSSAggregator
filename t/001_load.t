@@ -1,15 +1,15 @@
-# -*- perl -*-
-
-# t/001_load.t - check module loading and create testing directory
-
+#!/usr/bin/perl
+use strict;
+use warnings;
 use Test::More tests => 2;
+use POE;
 
-BEGIN { use_ok( 'POE::Component::RSSAggregator' ); }
+# so I don't have to keep typing it... :)
+my $package = 'POE::Component::RSSAggregator';
 
-sub testcallback { }
-my $object = POE::Component::RSSAggregator->new(
-    callback => \&testcallback,
-);
-isa_ok ($object, 'POE::Component::RSSAggregator');
+use_ok($package);
+isa_ok($package->new(callback => \&fake), $package);
 
+$poe_kernel->run();
 
+sub fake {}

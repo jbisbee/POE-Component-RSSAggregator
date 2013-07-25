@@ -1,5 +1,22 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
+0.29
+	- New shutdown event to clean things up
+	- New feed_list method to get the current feeds
+	- Updated some of the debug messages
+	- Fix to to pause_feed in case there isn't a feed to pause
+	- The begins of a PoCo::Server::HTTP test suite so I can actually 
+	  write tests for it
+	- Defaulted POE::Component::Client::HTTP to FollowRedirects => 2, 
+	  and allow to set the number of redirects via 
+
+	      POE::Component::RSSAggregator->new(
+	        ...
+		follow_redirects => 4,
+	      );
+
+	- Need to write MUCH, MUCH, better documentation... its next!
+
 0.28
 	- Squelched uninitialized -d test on tmpdir when its not
 	  defined.
