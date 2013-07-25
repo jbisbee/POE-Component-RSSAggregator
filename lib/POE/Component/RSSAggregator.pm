@@ -10,7 +10,7 @@ use Carp qw(croak);
 use constant DEFAULT_TIMEOUT => 60;
 use constant REDIRECT_DEPTH  => 2;
 
-our $VERSION = 1.1;
+our $VERSION = 1.11;
 
 sub new {
     my $class = shift;
@@ -230,7 +230,7 @@ POE::Component::RSSAggregator - Watch Muliple RSS Feeds for New Headlines
 
 =head1 VERSION
 
-Version 1.1
+Version 1.11
 
 =head1 SYNOPSIS
 

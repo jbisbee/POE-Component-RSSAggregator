@@ -3,7 +3,7 @@ NAME
     Headlines
 
 VERSION
-    Version 1.1
+    Version 1.11
 
 SYNOPSIS
         #!/usr/bin/perl
@@ -85,7 +85,9 @@ METHODS
     Returns the current feeds as an array or array_ref.
 
   $rssagg->feeds
-    Returns a hash ref of feeds with the key being the feeds name.
+    Returns a hash ref of feeds with the key being the feeds name. The hash
+    reference you that belongs to the key is passed to
+    XML::RSS::Feed->new($hash_ref). ( see XML::RSS::Feed )
 
   $rssagg->feed( $feed_name )
     Accessor to access a the XML::RSS::Feed object via a feed's name.

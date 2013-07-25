@@ -9,6 +9,7 @@ WriteMakefile(
     ABSTRACT_FROM => 'lib/POE/Component/RSSAggregator.pm',
     PL_FILES      => {},
     PREREQ_PM     => {
+        'POE'                          => 0,
         'POE::Component::Client::HTTP' => 0.51,
         'POE::Component::Client::DNS'  => 0.98,
         'XML::RSS::Feed'               => 0.01,

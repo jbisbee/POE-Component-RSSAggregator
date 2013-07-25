@@ -1,5 +1,9 @@
 Revision history for POE-Component-RSSAggregator
 
+1.11    6/30/2008
+        - add POE as a prereq (duh)
+        - clarified some documentation
+
 1.1     6/30/2008
         - perlcritic updates
             - move pod below __END__
