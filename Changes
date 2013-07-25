@@ -1,4 +1,12 @@
 Revision history for Perl module POE::Component::RSSAggregator
 
-0.01 Fri Mar 14 23:15:42 2003
+0.10
+	- Now use XML::RSS::Headline instead of XML::RSS::Feed::Headline
+	- added an accessor 'feeds' for to the hash of rss feeds
+	- use delay_set instead of delay_add.  This is for the future
+	  support of adding, reloading, removing feeds.
+	- use poe postback instead of sub reference for callback
+	- updated the pod with a POE session example
+
+0.01
 	- original version

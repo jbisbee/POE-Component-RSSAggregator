@@ -1,7 +1,7 @@
 package POE::Component::RSSAggregator;
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.02;
+$VERSION = 0.10;
 
 =head1 NAME
 
@@ -12,8 +12,6 @@ POE::Component::RSSAggregator - A Simple POE RSS Aggregator
     use POE;
     use POE::Component::RSSAggregator;
     use XML::RSS::Feed::Factory;
-
-First define the RSS Feeds you would like to watch
 
     my @feeds = (
 	{
@@ -30,45 +28,46 @@ First define the RSS Feeds you would like to watch
 	},
     );
 
-Create a new PoCo::RSSAggregator object and use the feed_factory function
-XML::RSS:Feed::Factory to generate your XML::RSS::Feed objects.
-
-    my $rssagg = POE::Component::RSSAggregator->new(
-	feeds    => [feed_factory(@feeds)],
-	debug    => 1,
-	callback => \&new_headlines,
+    POE::Session->create(
+	inline_states => {
+	    _start      => \&init_session,
+	    handle_feed => \&handle_feed,
+	}
     );
-
-Tell POE to run
 
     $poe_kernel->run();
 
-Every time a request is made the rss feed object is returned and you
-can see if things have changed - $feed->late_breaking_news
+    sub init_session
+    {
+	my ($kernel, $heap, $session) = @_[KERNEL, HEAP, SESSION];
+	$heap->{rssagg} = POE::Component::RSSAggregator->new(
+	    feeds    => [feed_factory(@define_feeds)],
+	    debug    => 1,
+	    callback => $session->postback("handle_feed"),
+	);
+    }
 
     sub handle_feed
     {
-	my ($feed) = @_;
-	if ($feed->late_breaking_news) {
-	    for my $headline ($feed->late_breaking_news) {
-		print $headline->url . "\n";
-	    }
+	my ($heap,$kernel,$feed) = (@_[HEAP, KERNEL], $_[ARG1]->[0]);
+	for my $headline ($feed->late_breaking_news) {
+	    # do stuff with the XML::RSS::Headline object
+	    print $headline->headline . "\n";
 	}
     }
 
-
 =head1 USAGE
 
-The short version is that fetch RSS feeds every 'delay' second
-adn when new headlines are found the XML::RSS::Feed::Headline
-objects are recived via the registerd call back function.
+The premise is this, you watch RSS feeds for new headlines to appear and when
+they do you trigger an event handle them.  The handle_feed event is given a 
+XML::RSS::Feed object every time new headlines are found.
 
 =head1 AUTHOR
 
-	Jeff Bisbee
-	CPAN ID: JBISBEE
-	jbisbee@cpan.org
-	http://www.jbisbee.com/perl/modules/
+Jeff Bisbee
+CPAN ID: JBISBEE
+jbisbee@cpan.org
+http://search.cpan.org/author/JBISBEE/
 
 =head1 COPYRIGHT
 
@@ -81,7 +80,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-L<XML::RSS::Feed::Factory>, L<XML::RSS::Feed>, L<XML::RSS::Feed::Headline>
+L<XML::RSS::Feed::Factory>, L<XML::RSS::Feed>, L<XML::RSS::Headline>
 
 =cut
 
@@ -99,11 +98,17 @@ sub new
     croak __PACKAGE__ . "->new() feeds ARRAY ref is required" 
 	unless ref $params{feeds} eq "ARRAY";
     my $test = ref $params{callback};
-    croak __PACKAGE__ . "->new callback CODE ref is required" 
-	unless ref $params{callback} eq "CODE";
+#    croak __PACKAGE__ . "->new callback CODE ref is required" 
+#    	unless ref $params{callback} =~ /CODE/;
     my $self = bless \%params, $class;
     $self->init();
     return $self;
+}
+
+sub feeds
+{
+    my ($self) = @_;
+    return $self->{feed_objs};
 }
 
 sub init
@@ -111,7 +116,7 @@ sub init
     my ($self) = @_;
     if ($self->{feeds}) {
 	for my $hash (@{$self->{feeds}}) {
-	    my $obj = $hash->{obj} || "XML::RSS::Feed";
+	    my $obj = "XML::RSS::Feed";
 	    $self->{feed_objs}->{$hash->{name}} = $obj->new(%$hash);
 	}
     }
@@ -146,7 +151,7 @@ sub fetch
     $rssfeed->failed_to_parse(0);
     my $req = HTTP::Request->new(GET => $rssfeed->url);
     $kernel->post($self->{http_alias},'request','response',$req,$rssfeed);
-    $kernel->delay_add('fetch',$rssfeed->delay,$rssfeed);
+    $self->{alarm_ids}{$rssfeed->name} = $kernel->delay_set('fetch', $rssfeed->delay, $rssfeed);
 }
 
 sub response
